@@ -1,0 +1,30 @@
+The JVM flag -XX:+PrintCompilation is a powerful tool for monitoring the **Just-In-Time (JIT) compiler's** behavior in real-time. When you enable this, the JVM logs a line of text to the console every time a Java method is compiled into native machine code.
+It is primarily used for performance tuning to see which methods are being optimized and whether the compiler is working too hard (causing CPU spikes) or "deoptimizing" frequently.
+### Understanding the Output
+When you run an application with this flag, you’ll see columns of data that look like this:
+218    1       3       java.lang.String::hashCode (55 bytes)
+| Column | Meaning |
+|---|---|
+| **Timestamp** | Milliseconds since the JVM started. |
+| **Compile ID** | An incremental ID for the compilation task. |
+| **Attributes** | Brief codes indicating the state of the method (see below). |
+| **Tier** | The compilation level (usually 1–4 in tiered compilation). |
+| **Method** | The name and byte size of the method being compiled. |
+### Common Attribute Codes
+ * **%**: On-Stack Replacement (OSR). The JVM compiled a hot loop inside a method while that method was already running.
+ * **s**: The method is synchronized.
+ * **!**: The method has exception handlers.
+ * **b**: Compilation happened in blocking mode.
+ * **n**: A wrapper for a native method was compiled.
+### Key Use Cases
+ 1. **Identifying Hotspots:** If you see a specific method appearing early and frequently at **Tier 4** (C2 compiler), you know that code is a primary execution path.
+ 2. **Detecting "Compilation Storms":** If the console is flooded with output during startup, it explains high CPU usage as the JIT compiler works to optimize the "warm-up" phase.
+ 3. **Deoptimization:** If you see the keyword made not entrant or zombie, it means the JVM's previous assumptions about the code were wrong (e.g., a new class was loaded that changed the inheritance tree), and it has discarded the compiled code to revert to interpreted mode or re-compile.
+### How to Enable It
+You can add it to your startup command:
+```bash
+java -XX:+PrintCompilation -jar your-app.jar
+
+```
+For even more detail, you can combine it with -XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining to see which methods are being "inlined" into others to reduce call overhead.
+
