@@ -1,0 +1,26 @@
+If you’re investigating JIT performance, the **Code Cache** is just as important as the compilation logs. While -XX:+PrintCompilation tells you *what* is being compiled, the Code Cache is the specific area of memory where those compiled native methods are stored.
+If this memory fills up, the JVM will stop compiling code entirely, and your application will drop back into interpreted mode, causing a massive performance hit.
+### Useful Flags for Monitoring the Code Cache
+| Flag | Description |
+|---|---|
+| **-XX:+PrintCodeCache** | Prints a summary of code cache usage (size, used, max) when the JVM exits. |
+| **-XX:+PrintCodeCacheOnCompilation** | Prints the cache status every time a method is compiled (very verbose, but good for spotting rapid filling). |
+| **-XX:ReservedCodeCacheSize** | Sets the maximum size (e.g., -XX:ReservedCodeCacheSize=512m). |
+| **-XX:InitialCodeCacheSize** | Sets the starting size to avoid frequent resizing during startup. |
+### Deciphering the Output
+When you use -XX:+PrintCodeCache, you’ll see an output similar to this:
+CodeCache: size=245760Kb used=15240Kb max_used=15260Kb free=230520Kb
+In modern Java (Java 9+), the cache is often split into three segments (Segmented Code Cache):
+ 1. **Non-Method Code:** Fixed-size JVM internal code (compiler buffers, etc.).
+ 2. **Profiled Code:** Tier 2 and Tier 3 compiled methods (short-lived).
+ 3. **Non-Profiled Code:** Tier 4 fully optimized code (long-lived).
+### Why the Code Cache "Fills Up"
+In large applications—especially those using **Spring Boot** with many dependencies or heavy-duty frameworks—the default code cache size (often 240MB) might be too small.
+ * **Compilation Stop:** Once the cache is full, you’ll likely see a warning like CodeCache is full. Compiler has been disabled.
+ * **Sweeping:** The JVM will try to "sweep" the cache to remove old or "zombie" methods (those marked "not entrant").
+ * **Performance Jitters:** If the JVM is constantly clearing the cache to make room for new Tier 4 methods, you’ll see CPU spikes and inconsistent latency.
+### Practical Tuning Tip
+For high-volume processing applications (like those handling millions of records), it is often safer to increase the limit early rather than letting the JVM struggle with the defaults:
+java -XX:ReservedCodeCacheSize=512m -XX:+PrintCodeCache -jar app.jar
+Are you seeing specific "zombie" methods in your logs, or are you just making sure your environment is tuned for a migration?
+
