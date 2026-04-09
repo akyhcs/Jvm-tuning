@@ -1,0 +1,26 @@
+In the JVM, **C1** and **C2** are the two distinct compilers that make up the "Just-In-Time" (JIT) system. They have different philosophies: one is built for **speed of compilation**, while the other is built for **speed of the resulting code**.
+Think of them like two different mechanics working on your car while you're driving it.
+### 1. C1 (The "Client" Compiler)
+The C1 compiler is designed to be fast and lightweight. Its main goal is to get your code optimized *as quickly as possible* so you don't stay in the slow "interpreted" mode for long.
+ * **When it kicks in:** Very early. Once a method is called a few hundred or thousand times.
+ * **What it does:** It performs simple optimizations like **Method Inlining** and **Class Hierarchy Analysis**.
+ * **The Trade-off:** The code it produces is much faster than interpreted bytecode, but it isn't "perfectly" optimized.
+### 2. C2 (The "Server" Compiler)
+The C2 compiler is the "heavy hitter." It is designed to produce the most efficient machine code possible, even if it takes more CPU time and memory to do the actual compiling.
+ * **When it kicks in:** Much later. It waits until a method is truly "hot" (called tens of thousands of times).
+ * **What it does:** It watches how your code actually runs (profiling). If it sees that a null check always passes or a loop always runs 10 times, it writes specialized machine code for those exact scenarios. It uses advanced tricks like **Global Value Numbering** and **Escape Analysis**.
+ * **The Trade-off:** It takes a lot of resources to run, but the result is "peak" performance.
+### How they work together: Tiered Compilation
+In modern Java (since Java 8), we use **Tiered Compilation**. This allows the JVM to get the best of both worlds.
+ 1. **Level 0:** Code starts as **Interpreted** (Slow).
+ 2. **Level 1-3 (C1):** As soon as a method warms up, C1 compiles it. Your app gets a quick speed boost. While this is running, the JVM is "profiling" (collecting data) on how the code behaves.
+ 3. **Level 4 (C2):** If the method stays hot, the JVM hands that profiling data to C2. C2 uses that data to create a "perfect" version of the method and swaps it in.
+### Summary Comparison
+| Feature | C1 (Client) | C2 (Server) |
+|---|---|---|
+| **Goal** | Fast Startup | Maximum Throughput |
+| **Optimization Level** | Simple / Basic | Advanced / Aggressive |
+| **CPU Usage** | Low | High |
+| **Code Quality** | Good | Excellent |
+When you adjust -XX:CICompilerCount, you are essentially deciding how many "mechanics" are available for C1 tasks versus C2 tasks. Usually, the JVM assigns more threads to C2 because its optimizations are much more complex and computationally expensive.
+
