@@ -1,0 +1,15 @@
+That image provides a great example of how to use -XX:CompileThreshold. Since you're looking at lowering that value to 1000, it's clear you're interested in making the JIT compiler more aggressive—basically telling the JVM, "Don't wait too long; compile this to native code sooner."
+If you are working with modern Java (8 and above), there is a significant catch to using that specific flag: **Tiered Compilation.**
+### The Tiered Compilation Trap
+By default, modern JVMs use **Tiered Compilation** (-XX:+TieredCompilation), which ignores the simple -XX:CompileThreshold flag. Instead, it uses a more complex set of thresholds to move code through five different levels of execution.
+If you want to force the JVM to respect a lower threshold like the one in your image, you usually have two options:
+ 1. **Disable Tiered Compilation:** Use -XX:-TieredCompilation along with -XX:CompileThreshold=1000. This reverts the JVM to a simpler model where it only uses the C2 compiler after 1,000 calls.
+ 2. **Adjust Tiered Thresholds:** If you want to keep the benefits of Tiered Compilation but still speed up the transition, you have to use more specific flags like:
+   * -XX:Tier3InvocationThreshold=200
+   * -XX:Tier4InvocationThreshold=5000
+### Why lower the threshold?
+Lowering the threshold to 1000 is a common tactic during **performance testing** or for **short-lived applications**. It forces the "warm-up" phase to happen much faster so you can see the peak performance of your code without waiting for tens of thousands of iterations.
+### CICompilerCount Connection
+As you mentioned CICompilerCount earlier, remember that if you lower the threshold to 1000, many more methods will hit that limit simultaneously. This will cause a **spike in the compilation queue**.
+If you see your CPU usage maxing out immediately upon startup, you might need to *increase* CICompilerCount to process that sudden flood of compilation requests, or the application might actually feel sluggish while the background threads scramble to compile everything at once.
+Are you trying to reduce the warm-up time for a specific service, or just experimenting with JVM internals?
